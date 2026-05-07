@@ -19,7 +19,9 @@ jobs:
 
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer \
+          || sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer \
+          || sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
           xcodebuild -version
 
       - name: Accept Xcode license
@@ -28,23 +30,15 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Remove xcodeVersion from project spec
+        run: sed -i '' '/xcodeVersion/d' project.yml
+
       - name: Generate Xcode project
         run: xcodegen generate --spec project.yml
 
       - name: Build app (unsigned)
         run: |
           xcodebuild \
-            -project VeillePurple.xcodeproj \
-            -scheme VeillePurple \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
-            -derivedDataPath "$RUNNER_TEMP/build" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO \
-            clean build | xcpretty || xcodebuild \
             -project VeillePurple.xcodeproj \
             -scheme VeillePurple \
             -configuration Release \
