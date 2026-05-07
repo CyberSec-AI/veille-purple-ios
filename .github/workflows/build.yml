@@ -3,44 +3,35 @@ name: Build iOS IPA
 on:
   push:
     branches: [main]
-    paths:
-      - 'VeillePurple/**'
-      - 'project.yml'
-      - '.github/workflows/build.yml'
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
     name: Build unsigned IPA
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select latest Xcode
+      - name: Show available Xcode versions
+        run: ls /Applications/ | grep Xcode
+
+      - name: Select Xcode
         run: |
-          ls /Applications/ | grep Xcode
-          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer || \
-          sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer || \
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
+      - name: Accept Xcode license
+        run: sudo xcodebuild -license accept
+
       - name: Install XcodeGen
-        run: |
-          brew install xcodegen
-          xcodegen --version
+        run: brew install xcodegen
 
       - name: Generate Xcode project
-        run: xcodegen generate
+        run: xcodegen generate --spec project.yml
 
-      - name: List schemes
-        run: |
-          xcodebuild -list -project VeillePurple.xcodeproj
-
-      - name: Build app (unsigned, Release)
+      - name: Build app (unsigned)
         run: |
           xcodebuild \
             -project VeillePurple.xcodeproj \
@@ -48,44 +39,46 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -derivedDataPath build \
+            -derivedDataPath "$RUNNER_TEMP/build" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
+            ONLY_ACTIVE_ARCH=NO \
+            clean build | xcpretty || xcodebuild \
+            -project VeillePurple.xcodeproj \
+            -scheme VeillePurple \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath "$RUNNER_TEMP/build" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=NO \
             clean build
 
-      - name: Package unsigned IPA
+      - name: Package IPA
         run: |
-          cd build/Build/Products/Release-iphoneos
+          APP_PATH=$(find "$RUNNER_TEMP/build" -name "*.app" -not -path "*/iphoneos.sdk/*" | head -1)
+          echo "Found .app at: $APP_PATH"
           mkdir -p Payload
-          mv VeillePurple.app Payload/
-          zip -qry "${GITHUB_WORKSPACE}/VeillePurple-unsigned.ipa" Payload
-          ls -lh "${GITHUB_WORKSPACE}/VeillePurple-unsigned.ipa"
+          cp -r "$APP_PATH" Payload/
+          zip -qry VeillePurple-unsigned.ipa Payload/
+          ls -lh VeillePurple-unsigned.ipa
 
-      - name: Upload IPA artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: VeillePurple-unsigned-ipa
           path: VeillePurple-unsigned.ipa
           retention-days: 30
 
-      - name: Create GitHub Release (on push to main)
+      - name: Create Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: Build ${{ github.run_number }}
-          body: |
-            Build automatique du `.ipa` non signé.
-
-            **Installation via SideStore :**
-            1. Télécharge `VeillePurple-unsigned.ipa`
-            2. Ouvre-le avec SideStore sur iOS
-            3. Configure l'URL n8n au premier lancement
           files: VeillePurple-unsigned.ipa
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
