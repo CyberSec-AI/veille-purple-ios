@@ -75,6 +75,10 @@ struct MatchesView: View {
 struct MatchRow: View {
     let article: Article
 
+    private var sourceName: String? {
+        SourcesRegistry.source(forArticleURL: article.url)?.name
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 8)
@@ -87,6 +91,14 @@ struct MatchRow: View {
                     Text(article.volet.uppercased())
                         .font(.caption2.weight(.bold))
                         .foregroundColor(article.voletColor)
+                    if let source = sourceName {
+                        Text("·")
+                            .foregroundColor(.gray)
+                        Text(source)
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
                     Spacer()
                     Text(article.pertinence.uppercased())
                         .font(.caption2.weight(.bold))

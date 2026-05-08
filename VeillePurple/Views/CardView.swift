@@ -9,13 +9,18 @@ struct CardView: View {
     @State private var rotation: Double = 0
     @State private var isGone: Bool = false
     @State private var showDetail: Bool = false
+    @State private var showSourceInfo: Bool = false   // ← NEW
 
     private let swipeThreshold: CGFloat = 120
+
+    /// Source matched from the article URL (nil if no match in registry)
+    private var matchedSource: Source? {
+        SourcesRegistry.source(forArticleURL: article.url)
+    }
 
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                // Card background gradient based on volet
                 RoundedRectangle(cornerRadius: 24)
                     .fill(
                         LinearGradient(
@@ -34,16 +39,36 @@ struct CardView: View {
                     )
 
                 VStack(alignment: .leading, spacing: 14) {
-                    // Top row — volet + pertinence
+                    // Top row — volet + pertinence + (i) source info
                     HStack {
                         VoletBadge(volet: article.volet, color: article.voletColor)
                         Spacer()
                         PertinenceBadge(level: article.pertinence)
+
+                        // ← NEW : source info button
+                        if matchedSource != nil {
+                            Button {
+                                showSourceInfo = true
+                            } label: {
+                                Image(systemName: "info.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .background(
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                            .frame(width: 30, height: 30)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            // Stop drag gesture from hijacking the tap
+                            .highPriorityGesture(
+                                TapGesture().onEnded { showSourceInfo = true }
+                            )
+                        }
                     }
 
                     Spacer().frame(height: 4)
 
-                    // Title
                     Text(article.titreFr)
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
@@ -51,7 +76,6 @@ struct CardView: View {
                         .lineLimit(4)
                         .minimumScaleFactor(0.7)
 
-                    // Summary
                     ScrollView(showsIndicators: false) {
                         Text(article.resumeFr)
                             .font(.system(size: 16))
@@ -61,7 +85,6 @@ struct CardView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
-                    // Tags
                     if !article.tags.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 6) {
@@ -78,19 +101,28 @@ struct CardView: View {
                         }
                     }
 
-                    // Source
-                    HStack(spacing: 6) {
-                        Image(systemName: "link")
-                            .font(.caption2)
-                        Text(URL(string: article.url)?.host ?? article.url)
-                            .font(.caption)
-                            .lineLimit(1)
+                    // Source row — clickable when matched
+                    Button {
+                        if matchedSource != nil { showSourceInfo = true }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: matchedSource != nil ? "person.crop.circle.fill" : "link")
+                                .font(.caption2)
+                            Text(matchedSource?.name ?? URL(string: article.url)?.host ?? article.url)
+                                .font(.caption)
+                                .lineLimit(1)
+                            if matchedSource != nil {
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                            }
+                        }
+                        .foregroundColor(.white.opacity(0.7))
                     }
-                    .foregroundColor(.white.opacity(0.7))
+                    .buttonStyle(.plain)
+                    .disabled(matchedSource == nil)
                 }
                 .padding(24)
 
-                // Swipe overlays
                 SwipeOverlay(action: .pass, opacity: passOpacity, alignment: .topTrailing)
                 SwipeOverlay(action: .like, opacity: likeOpacity, alignment: .topLeading)
                 SwipeOverlay(action: .superLike, opacity: superLikeOpacity, alignment: .top)
@@ -107,6 +139,11 @@ struct CardView: View {
         .sheet(isPresented: $showDetail) {
             DetailView(article: article)
         }
+        .sheet(isPresented: $showSourceInfo) {
+            if let source = matchedSource {
+                SourceInfoView(source: source)
+            }
+        }
         .onChange(of: triggerAction) { newAction in
             if let action = newAction {
                 performProgrammaticSwipe(action)
@@ -115,7 +152,6 @@ struct CardView: View {
         }
     }
 
-    // MARK: - Drag gesture
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { gesture in
@@ -169,7 +205,6 @@ struct CardView: View {
         }
     }
 
-    // MARK: - Overlay opacities
     private var likeOpacity: Double {
         offset.width > 0 && abs(offset.width) > abs(offset.height)
             ? min(Double(offset.width) / Double(swipeThreshold), 1.0)

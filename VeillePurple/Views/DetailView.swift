@@ -3,6 +3,11 @@ import SwiftUI
 struct DetailView: View {
     let article: Article
     @Environment(\.dismiss) private var dismiss
+    @State private var showSourceInfo: Bool = false
+
+    private var matchedSource: Source? {
+        SourcesRegistry.source(forArticleURL: article.url)
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,22 +24,36 @@ struct DetailView: View {
                     Text(article.titreFr)
                         .font(.system(size: 28, weight: .bold, design: .rounded))
 
-                    // Source
-                    HStack(spacing: 8) {
-                        Image(systemName: "globe")
-                        Text(URL(string: article.url)?.host ?? "")
-                            .font(.subheadline)
-                        if let lang = article.langueSource {
-                            Text("·")
-                            Text(lang.uppercased())
-                                .font(.caption)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(6)
+                    // Source row — opens SourceInfoView when tapped
+                    Button {
+                        if matchedSource != nil { showSourceInfo = true }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: matchedSource != nil ? "person.crop.circle.fill" : "globe")
+                                .foregroundColor(matchedSource?.voletColor ?? .gray)
+                            Text(matchedSource?.name ?? URL(string: article.url)?.host ?? "")
+                                .font(.subheadline.weight(matchedSource != nil ? .semibold : .regular))
+                                .foregroundColor(matchedSource != nil ? .white : .gray)
+                            if matchedSource != nil {
+                                Image(systemName: "info.circle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            if let lang = article.langueSource {
+                                Text("·")
+                                    .foregroundColor(.gray)
+                                Text(lang.uppercased())
+                                    .font(.caption)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(6)
+                            }
+                            Spacer()
                         }
                     }
-                    .foregroundColor(.gray)
+                    .buttonStyle(.plain)
+                    .disabled(matchedSource == nil)
 
                     Divider()
 
@@ -63,7 +82,42 @@ struct DetailView: View {
                         }
                     }
 
-                    // Open link button
+                    // About-the-source mini card
+                    if let source = matchedSource {
+                        Button {
+                            showSourceInfo = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(source.voletColor)
+                                    .frame(width: 4)
+                                    .frame(maxHeight: .infinity)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("À propos de \(source.name)")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(source.description)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                                    .font(.caption)
+                            }
+                            .padding(14)
+                            .background(Color.white.opacity(0.05))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(source.voletColor.opacity(0.3), lineWidth: 0.5)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // Open link
                     if let url = URL(string: article.url) {
                         Link(destination: url) {
                             HStack {
@@ -94,11 +148,16 @@ struct DetailView: View {
                     Button("Fermer") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showSourceInfo) {
+                if let source = matchedSource {
+                    SourceInfoView(source: source)
+                }
+            }
         }
     }
 }
 
-// Simple wrap layout for tags
+// FlowLayout — kept as-is (used by both DetailView and SourceInfoView)
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
 

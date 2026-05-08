@@ -21,11 +21,17 @@ struct ContentView: View {
                     }
                     .tag(1)
 
+                SourcesDirectoryView()
+                    .tabItem {
+                        Label("Sources", systemImage: "newspaper.fill")
+                    }
+                    .tag(2)
+
                 SettingsView()
                     .tabItem {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
-                    .tag(2)
+                    .tag(3)
             }
             .tint(Color(red: 0.65, green: 0.45, blue: 0.95))
         }
