@@ -9,11 +9,10 @@ struct CardView: View {
     @State private var rotation: Double = 0
     @State private var isGone: Bool = false
     @State private var showDetail: Bool = false
-    @State private var showSourceInfo: Bool = false   // ← NEW
+    @State private var showSourceInfo: Bool = false
 
     private let swipeThreshold: CGFloat = 120
 
-    /// Source matched from the article URL (nil if no match in registry)
     private var matchedSource: Source? {
         SourcesRegistry.source(forArticleURL: article.url)
     }
@@ -21,31 +20,34 @@ struct CardView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .top) {
+                // Solid opaque base — prevents the card behind from bleeding through
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(red: 0.10, green: 0.06, blue: 0.18))
+
+                // Color gradient on top of the opaque base
                 RoundedRectangle(cornerRadius: 24)
                     .fill(
                         LinearGradient(
                             colors: [
-                                article.voletColor.opacity(0.85),
-                                article.voletColor.opacity(0.4),
-                                Color.black.opacity(0.9)
+                                article.voletColor,
+                                article.voletColor.opacity(0.55),
+                                Color.clear
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                    )
+
+                // Subtle border
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
 
                 VStack(alignment: .leading, spacing: 14) {
-                    // Top row — volet + pertinence + (i) source info
                     HStack {
                         VoletBadge(volet: article.volet, color: article.voletColor)
                         Spacer()
                         PertinenceBadge(level: article.pertinence)
 
-                        // ← NEW : source info button
                         if matchedSource != nil {
                             Button {
                                 showSourceInfo = true
@@ -60,7 +62,6 @@ struct CardView: View {
                                     )
                             }
                             .buttonStyle(.plain)
-                            // Stop drag gesture from hijacking the tap
                             .highPriorityGesture(
                                 TapGesture().onEnded { showSourceInfo = true }
                             )
@@ -101,7 +102,6 @@ struct CardView: View {
                         }
                     }
 
-                    // Source row — clickable when matched
                     Button {
                         if matchedSource != nil { showSourceInfo = true }
                     } label: {
@@ -127,6 +127,7 @@ struct CardView: View {
                 SwipeOverlay(action: .like, opacity: likeOpacity, alignment: .topLeading)
                 SwipeOverlay(action: .superLike, opacity: superLikeOpacity, alignment: .top)
             }
+            .clipShape(RoundedRectangle(cornerRadius: 24))
             .shadow(color: .black.opacity(0.4), radius: 16, x: 0, y: 8)
         }
         .offset(offset)

@@ -43,7 +43,7 @@ struct SwipeView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                Text("Veille Purple")
+                Text("TindSec")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
             }
             Spacer()
@@ -58,6 +58,13 @@ struct SwipeView: View {
             StatPill(icon: "xmark", value: viewModel.swipeStats.passes, color: .red)
             StatPill(icon: "heart.fill", value: viewModel.swipeStats.likes, color: .green)
             StatPill(icon: "star.fill", value: viewModel.swipeStats.superLikes, color: .blue)
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                viewModel.resetStats()
+            } label: {
+                Label("Réinitialiser les compteurs", systemImage: "arrow.counterclockwise")
+            }
         }
     }
 

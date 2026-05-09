@@ -66,12 +66,13 @@ struct FirstRunView: View {
                         )
                     )
 
-                Text("Veille Purple")
+                Text("TindSec")
                     .font(.system(size: 38, weight: .heavy, design: .rounded))
 
-                Text("Configure ton serveur n8n")
+                Text("Swipe. Match. Defend.")
                     .font(.subheadline)
                     .foregroundColor(.gray)
+                    .tracking(2)
 
                 VStack(spacing: 16) {
                     TextField("URL n8n (ex: http://10.8.0.201:5678)", text: $url)
