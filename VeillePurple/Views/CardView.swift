@@ -44,29 +44,49 @@ struct CardView: View {
 
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        VoletBadge(volet: article.volet, color: article.voletColor)
-                        Spacer()
-                        PertinenceBadge(level: article.pertinence)
+    VoletBadge(volet: article.volet, color: article.voletColor)
+    Spacer()
 
-                        if matchedSource != nil {
-                            Button {
-                                showSourceInfo = true
-                            } label: {
-                                Image(systemName: "info.circle.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(.white.opacity(0.9))
-                                    .background(
-                                        Circle()
-                                            .fill(.ultraThinMaterial)
-                                            .frame(width: 30, height: 30)
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                            .highPriorityGesture(
-                                TapGesture().onEnded { showSourceInfo = true }
-                            )
-                        }
-                    }
+    // Badge Radar — visible uniquement si l'article vient de la veille radar
+    if article.sourceType == "radar" {
+        HStack(spacing: 4) {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .font(.system(size: 10, weight: .semibold))
+            Text("Radar")
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color(red: 0.78, green: 0.66, blue: 0.32).opacity(0.25))
+        .foregroundColor(Color(red: 0.78, green: 0.66, blue: 0.32))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(red: 0.78, green: 0.66, blue: 0.32).opacity(0.5), lineWidth: 1)
+        )
+        .cornerRadius(8)
+    }
+
+    PertinenceBadge(level: article.pertinence)
+
+    if matchedSource != nil {
+        Button {
+            showSourceInfo = true
+        } label: {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 22))
+                .foregroundColor(.white.opacity(0.9))
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 30, height: 30)
+                )
+        }
+        .buttonStyle(.plain)
+        .highPriorityGesture(
+            TapGesture().onEnded { showSourceInfo = true }
+        )
+    }
+}
 
                     Spacer().frame(height: 4)
 

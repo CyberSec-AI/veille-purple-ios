@@ -57,3 +57,10 @@ SELECT
 FROM articles a
 INNER JOIN feedbacks f ON a.article_id = f.article_id
 GROUP BY a.volet, f.action;
+
+-- Migration V2 : ajout source_type pour la veille radar
+ALTER TABLE articles
+    ADD COLUMN IF NOT EXISTS source_type VARCHAR(10) NOT NULL DEFAULT 'cible';
+
+CREATE INDEX IF NOT EXISTS idx_articles_source_type
+    ON articles(source_type);
